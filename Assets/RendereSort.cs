@@ -1,0 +1,30 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class RendereSort : MonoBehaviour
+{
+    public Renderer MyRenderer;
+    public string MySortingLayer;
+    public int MySortingOrderInLayer;
+    private void Start()
+    {
+        if (MyRenderer == null)
+        {
+            MyRenderer = this.GetComponent<Renderer>();
+        }       
+        SetLayer();        
+    }
+     public void SetLayer()
+     {
+         if (MyRenderer == null)
+         {
+             MyRenderer = this.GetComponent<Renderer>();
+         }
+
+         MyRenderer.sortingLayerName = MySortingLayer;
+         MyRenderer.sortingOrder = MySortingOrderInLayer;
+
+         Debug.Log(MyRenderer.sortingLayerName + " " + MyRenderer.sortingOrder);
+     }
+}
