@@ -6,22 +6,31 @@ using Deform;
 
 public class SendRay : MonoBehaviour
 {
- 
+    [SerializeField] float speed;
+    public List<Transform> cloths;
     Transform cloth;
+    Transform clothParent;
     ObiCloth temporaryObi;
     public GameObject[] obiClothes;
     int index;
     bool ishit;
+    bool isParent, isParent2, isParent3;
     public GameObject parentObj;
-    CellularNoiseDeformer deformerTransform, deformerTransform1, deformerTransform2;
+
+    public Deform.Masking.BoxMask deformerTransform, deformerTransform1, deformerTransform2;
     public float yoffset;
+
     private void Start()
     {
+        cloths = new List<Transform>();
+        yoffset = 2;
         index = -1;
         ishit = true;
+        isParent = false;
+        isParent2 = false;
     }
     void Update()
-    {      
+    {
         if (Input.GetMouseButtonDown(0))
         {
             ishit = true;
@@ -36,133 +45,116 @@ public class SendRay : MonoBehaviour
         {
             ishit = true;
         }
-        Ray ray = new Ray(transform.position+new Vector3(1.5f,yoffset,0), Vector3.down);
+        Ray ray = new Ray(transform.position + new Vector3(1.5f, yoffset, 0), Vector3.down);
         Debug.DrawRay(transform.position + new Vector3(1.5f, yoffset, 0), Vector3.down, Color.blue, 1);
         RaycastHit hitinfo;
-        if (Physics.Raycast(ray, out hitinfo,1))
+        if (Physics.Raycast(ray, out hitinfo, 1))
         {
-            Debug.Log(" hitinfo.collider.name" + hitinfo.collider.name);
-            if ((hitinfo.collider.name== "Obi Cloth"|| hitinfo.collider.name == "Thirt" || hitinfo.collider.name == "Obi Cloth (1)") &&ishit)
+           // Debug.Log(" hitinfo.collider.name" + hitinfo.collider.name);
+            if ((hitinfo.collider.name == "Box Mask") && ishit)
             {
-                cloth = hitinfo.transform;
-                temporaryObi = cloth.GetComponent<ObiCloth>();
-                StartCoroutine(Ironit());
-            }
-            if ((hitinfo.collider.name == "Cellular Noise") && ishit)
-            {
+                TemporarySpeed._offsetvector = .5f;
+                StartCoroutine(hitend());
                 Debug.Log("Hit");
-                 deformerTransform = hitinfo.collider.GetComponent<CellularNoiseDeformer>();
-                 StartCoroutine(hitdeformer());                
+                deformerTransform = hitinfo.collider.GetComponent<Deform.Masking.BoxMask>();
+                deformerTransform.GetComponent<MoveSolver>().Speed = -speed;              
+                isParent = true;                            
             }
-            if ((hitinfo.collider.name == "Cellular Noise1")&&ishit)
+            if ((hitinfo.collider.name == "Box MaskSecond") && ishit)
             {
-                deformerTransform1 = hitinfo.collider.GetComponent<CellularNoiseDeformer>();
-                StartCoroutine(hitdeformer1());
+                TemporarySpeed._offsetvector = .5f;
+                StartCoroutine(hitend());
+                cloths.Clear();
+                cloths.Add(hitinfo.collider.transform);
+                if (isParent)
+                {
+                    deformerTransform.GetComponent<MoveSolver>().Speed = 0f;
+                    isParent = false;
+                }
+                deformerTransform1 = hitinfo.collider.GetComponent<Deform.Masking.BoxMask>();               
+                isParent2 = true;
+                StartCoroutine(hitdeformer());               
             }
-            if ((hitinfo.collider.name == "Cellular Noise2")&& ishit)
+            if ((hitinfo.collider.name == "Box MaskThird") && ishit)
             {
-                deformerTransform2 = hitinfo.collider.GetComponent<CellularNoiseDeformer>();
-                StartCoroutine(hitdeformer2());
+                TemporarySpeed._offsetvector = .5f;
+                StartCoroutine(hitend());
+                cloths.Clear();
+                cloths.Add(hitinfo.collider.transform);
+                if (isParent2)
+                {
+                    deformerTransform1.GetComponent<MoveSolver>().Speed = 0f;
+                    isParent2 = false;
+                    deformerTransform.GetComponent<MoveSolver>().Speed = 0f;
+                    isParent = false;
+                }               
+                deformerTransform2 = hitinfo.collider.GetComponent<Deform.Masking.BoxMask>();
+                isParent3 = true;
+                StartCoroutine(hitdeformer());
             }
         }
     }
     IEnumerator hitdeformer()
     {       
-        deformerTransform.OffsetSpeedVector = Vector4.one * 1.01f;
-        deformerTransform.transform.root.GetComponent<MoveSolver>().Yposition();
         float elapsedtime = 0;
-        while (ishit)
+        while (isParent2)
         {
-           // Debug.Log(deformerTransform.MagnitudeVector);
             elapsedtime += Time.deltaTime * .4f;
-            deformerTransform.MagnitudeScalar = Mathf.Lerp(deformerTransform.MagnitudeScalar, 0, elapsedtime/50);
-            yield return null;
-        }       
-       
-        deformerTransform.OffsetSpeedVector = Vector4.zero;      
-    }
-    IEnumerator hitdeformer1()
-    {
+            Bounds bounds = cloths[0].GetComponent<Deform.Masking.BoxMask>().OuterBounds;
+            bounds.center = Vector3.Lerp(bounds.center, new Vector3(1.19f, -21f, 0), Time.deltaTime / 50);
+            bounds.extents = Vector3.Lerp(bounds.extents, new Vector3(.46f, 4.6f, 2), Time.deltaTime / 50);
+            cloths[0].GetComponent<Deform.Masking.BoxMask>().OuterBounds = bounds;
 
-        deformerTransform1.OffsetSpeedVector = Vector4.one * 1.01f;
-        deformerTransform1.transform.root.GetComponent<MoveSolver>().Yposition();
+            Bounds bounds2 = cloths[0].GetComponent<Deform.Masking.BoxMask>().InnerBounds;
+            bounds2.center = Vector3.Lerp(bounds.center, new Vector3(1.19f, -21f, 0), Time.deltaTime / 50);
+            bounds2.extents = Vector3.Lerp(bounds.extents, new Vector3(.46f, 5.7f, 2), Time.deltaTime / 50);
+            cloths[0].GetComponent<Deform.Masking.BoxMask>().InnerBounds = bounds2;
+            yield return null;
+        }
+        while (isParent3)
+        {
+            elapsedtime += Time.deltaTime * .4f;
+            Bounds bounds = cloths[0].GetComponent<Deform.Masking.BoxMask>().OuterBounds;
+            bounds.center = Vector3.Lerp(bounds.center, new Vector3(1.19f, -22f, 0), Time.deltaTime / 50);
+            bounds.extents = Vector3.Lerp(bounds.extents, new Vector3(.46f, 11f, 2), Time.deltaTime / 50);
+            cloths[0].GetComponent<Deform.Masking.BoxMask>().OuterBounds = bounds;
 
-        float elapsedtime = 0;
-        while (ishit)
-        {
-            // Debug.Log(deformerTransform.MagnitudeVector);
-            elapsedtime += Time.deltaTime * .4f;
-            deformerTransform1.MagnitudeScalar = Mathf.Lerp(deformerTransform1.MagnitudeScalar, 0, elapsedtime / 50);
-            yield return null;
-            deformerTransform1.transform.parent.localPosition = Vector3.Lerp(deformerTransform1.transform.parent.localPosition,
-                new Vector3(deformerTransform1.transform.parent.localPosition.x, deformerTransform1.transform.parent.localPosition.y, -10f), elapsedtime/100);
-        }
-        deformerTransform1.OffsetSpeedVector = Vector4.zero;
-    }
-    IEnumerator hitdeformer2()
-    {
-        deformerTransform2.OffsetSpeedVector = Vector4.one * 1.01f;
-        deformerTransform2.transform.root.GetComponent<MoveSolver>().Yposition();
-        float elapsedtime = 0;
-        while (ishit)
-        {
-            // Debug.Log(deformerTransform.MagnitudeVector);
-            elapsedtime += Time.deltaTime * .4f;
-            deformerTransform2.MagnitudeScalar = Mathf.Lerp(deformerTransform2.MagnitudeScalar, 0, elapsedtime / 50 );
-            deformerTransform2.transform.parent.localPosition = Vector3.Lerp(deformerTransform2.transform.parent.localPosition,
-               new Vector3(deformerTransform2.transform.parent.localPosition.x, deformerTransform2.transform.parent.localPosition.y, -10f), elapsedtime/1000);
+            Bounds bounds2 = cloths[0].GetComponent<Deform.Masking.BoxMask>().InnerBounds;
+            bounds2.center = Vector3.Lerp(bounds2.center, new Vector3(1.19f, -22f, 0), Time.deltaTime / 50);
+            bounds2.extents = Vector3.Lerp(bounds2.extents, new Vector3(0.45f, 5.7f, 2), Time.deltaTime / 50);
+            cloths[0].GetComponent<Deform.Masking.BoxMask>().InnerBounds = bounds2;
             yield return null;
         }
-        deformerTransform2.OffsetSpeedVector = Vector4.zero;
-    }
-    IEnumerator Ironit()
-    {        
-        Debug.Log("Ironhit");
-        yield return new WaitForSeconds(.2f);
-        foreach (Transform child in cloth)
-        {
-            child.gameObject.SetActive(false);
-        }
-        float elapsedtime = 0;
-        while (elapsedtime<=1)
-        {           
-            temporaryObi.stretchingScale = Mathf.Lerp(1.07f, 1, 1 / elapsedtime);
-            temporaryObi.maxBending = Mathf.Lerp(1f, 0, 1 / elapsedtime);
-            yield return null;
-        }      
-    }
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.name== "Obi Cloth"|| other.gameObject.name == "Obi Cloth (1)")
-        {
-            StartCoroutine(hitTrigger());
-        }     
     }
    
-    IEnumerator hitTrigger()
-    {     
-        yield return new WaitForSeconds(1f);
-        ishit = false;
-        index++;
-        Debug.Log($"index{index}");
-        obiClothes[index].SetActive(false);
-        yield return new WaitForSeconds(1f);
-        obiClothes[index + 1].SetActive(true);
-        ishit = true;
-        Debug.Log("Ishit" + ishit);
-    }    
     IEnumerator RiseIron()
     {
+        if (isParent)
+        {
+            deformerTransform.GetComponent<MoveSolver>().Speed = 0f;
+            isParent = false;
+        }
+        if (isParent2)
+        {
+           //deformerTransform1.GetComponent<MoveSolver>().Speed = 0f;
+            isParent2 = false;
+        }
+        if (isParent3)
+        {
+            //deformerTransform1.GetComponent<MoveSolver>().Speed = 0f;
+            isParent3 = false;
+        }
         float elapsedtime = 0;
         yoffset = 2f;
-        while (elapsedtime<=.2f)
+        while (elapsedtime <= .2f)
         {
             elapsedtime += Time.deltaTime;
-          
-            Quaternion targetrot = Quaternion.Euler(0, 0, 18.5F);
-            parentObj.transform.rotation = Quaternion.Slerp(parentObj.transform.rotation, targetrot, 1/elapsedtime);
+
+            Quaternion targetrot = Quaternion.Euler(0, 0, 18.5f);
+            parentObj.transform.rotation = Quaternion.Slerp(parentObj.transform.rotation, targetrot, 1 / elapsedtime);
             yield return null;
         }
+      
     }
     IEnumerator DescentIron()
     {
@@ -175,5 +167,10 @@ public class SendRay : MonoBehaviour
             parentObj.transform.rotation = Quaternion.Slerp(parentObj.transform.rotation, targetrot, 1 / elapsedtime);
             yield return null;
         }
+    }
+    IEnumerator hitend()
+    {
+        yield return new WaitForSeconds(.25f);
+        TemporarySpeed._offsetvector = 0;
     }
 }

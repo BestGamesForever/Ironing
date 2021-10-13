@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MoveSolver : MonoBehaviour
 {
-   public float Speed = 5;
+   public float Speed;
     void Update()
     {
         transform.Translate(Vector3.up * Speed * Time.deltaTime);
